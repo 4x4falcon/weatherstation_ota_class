@@ -1,0 +1,1 @@
+# weatherstation_ota_class
