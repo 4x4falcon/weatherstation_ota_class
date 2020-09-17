@@ -31,6 +31,18 @@
 from machine import Pin
 import utime
 
+# setup freetronics watchdog
+# Freetronics hardware watchdog pin
+Hwwd = Pin(5, Pin.OUT)
+
+from classes import Watchdog
+#from classes.freetronicsWatchdog import Watchdog
+watchdog = Watchdog(Hwwd)
+
+# offset for epoch time from 1-1-1970 to 1-1-2000
+epochoffset = 946684800
+
+
 class WeatherStationClass:
 	"""Weather Station Class"""
 
@@ -61,34 +73,29 @@ class WeatherStationClass:
 
 			sleep_ms(realdelay)
 
+			watchdog.feed()
 
-
-
-"""	f.toggle(led)
-
-	watchdog.feed()
-
-	timestamp = utime.time() + epochoffset
+			timestamp = utime.time() + epochoffset
 
 # update ntp time every 30 minutes 1800 seconds
 
-	if (f.resetntp(timestamp)):
+			if (f.resetntp(timestamp)):
 
-		for i in range(tries):
-			try:
-				ntptime.settime() # set the rtc datetime from the remote server
-				rtc.datetime()    # get the date and time in UTC
-				timestamp = utime.time() + epochoffset
-				print('Updating time via ntp')
-			except:
-				if i < tries - 1: # i is zero indexed
-					sleep_ms(10000)
-					continue
-#			else:
-#				raise
-			break
+				for i in range(tries):
+					try:
+						ntptime.settime() # set the rtc datetime from the remote server
+						rtc.datetime()    # get the date and time in UTC
+						timestamp = utime.time() + epochoffset
+						print('Updating time via ntp')
+					except:
+						if i < tries - 1: # i is zero indexed
+							sleep_ms(10000)
+							continue
+					break
 
 
+
+"""
 	try:
 		bme280 = BME280(i2c=i2c)
 
