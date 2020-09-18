@@ -1,101 +1,112 @@
-#! /usr/bin/env python
-#
-# Weather Station OTA class
-#
-# MIT License
-#
-# Copyright (c) 2020 Ross Scanlon <info@4x4falcon.com>
-#
-# based on MicroPython OTA Updater Example Module
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-"""Weather Station OTA Class"""
+# -------------------------------------------------------------------------------
 
-from machine import Pin
+outside = True
+calibrate = False
+
+from machine import Pin, I2C, RTC
+from time import sleep, sleep_ms
+
+from .classes.bme280 import *
+from .classes.debounce import DebouncedSwitch
+
 import utime
 
-# setup freetronics watchdog
-# Freetronics hardware watchdog pin
-Hwwd = Pin(5, Pin.OUT)
+import urequests
 
-from classes import Watchdog
-#from classes.freetronicsWatchdog import Watchdog
-watchdog = Watchdog(Hwwd)
+import machine
+
+# import my functions
+from .functions import *
+#import .functions as f
+
+#esp8266
+sw1 = DebouncedSwitch(Pin(14, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
+sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+
+#esp32
+#sw1 = DebouncedSwitch(Pin(23, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
+#sw2 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+
+
+# total time between loops in microseconds
+sleepdelay = 60000
+if (calibrate):
+	sleepdelay = 5000
 
 # offset for epoch time from 1-1-1970 to 1-1-2000
 epochoffset = 946684800
 
+# battery voltage
+batteryvoltage = 3.7
 
-class WeatherStationClass:
-	"""Weather Station Class"""
+# inbuilt led
+led = Pin(2, Pin.OUT)
+led.off()
 
-	def __init__(self):
-		self.led = Pin(2, Pin.OUT)
-		pass
+# Freetronics hardware watchdog pin
+# ESP32
+#Hwwd = Pin(5, Pin.OUT)
+# ESP8266
+Hwwd = Pin(15, Pin.OUT)
 
-	def __call__(self):
-		return self
+from .classes.freetronicsWatchdog import Watchdog
+watchdog = Watchdog(Hwwd)
 
-	def do_it(self):
-		"""This is the main loop of the class"""
-		print("Hello from Weather Station Class.")
 
-		while True:
+rtc = RTC()
+# synchronize with ntp
+# need to be connected to wifi
 
-			self.led.value(not self.led.value())
+import ntptime
+
+tries = 10
+for i in range(tries):
+	try:
+		ntptime.settime() # set the rtc datetime from the remote server
+		rtc.datetime()    # get the date and time in UTC
+	except:
+		if i < tries - 1: # i is zero indexed
+			sleep_ms(10000)
+			continue
+	break
+
+ntpset = utime.time() + epochoffset
+
+# ESP32 - Pin assignment
+#i2c = I2C(scl=Pin(22), sda=Pin(21), freq=10000)
+# ESP8266 - Pin assignment
+i2c = I2C(scl=Pin(5), sda=Pin(4), freq=10000)
+
+while True:
 
 # start of loop time
-			loopstart = utime.ticks_ms()
+	loopstart = utime.ticks_ms()
 
+	toggle(led)
 
-# Go to sleep for the specified time (minus the time we needed for all the stuff we did in the loop)
+	watchdog.feed()
 
-			loopend = utime.ticks_ms()
-
-			realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
-
-			sleep_ms(realdelay)
-
-			watchdog.feed()
-
-			timestamp = utime.time() + epochoffset
+	timestamp = utime.time() + epochoffset
 
 # update ntp time every 30 minutes 1800 seconds
 
-			if (f.resetntp(timestamp)):
+	if (resetntp(timestamp)):
 
-				for i in range(tries):
-					try:
-						ntptime.settime() # set the rtc datetime from the remote server
-						rtc.datetime()    # get the date and time in UTC
-						timestamp = utime.time() + epochoffset
-						print('Updating time via ntp')
-					except:
-						if i < tries - 1: # i is zero indexed
-							sleep_ms(10000)
-							continue
-					break
+		for i in range(tries):
+			try:
+				ntptime.settime() # set the rtc datetime from the remote server
+				rtc.datetime()    # get the date and time in UTC
+				timestamp = utime.time() + epochoffset
+				print('Updating time via ntp')
+			except:
+				if i < tries - 1: # i is zero indexed
+					sleep_ms(10000)
+					continue
+#			else:
+#				raise
+			break
 
 
-
-"""
 	try:
 		bme280 = BME280(i2c=i2c)
 
@@ -117,19 +128,18 @@ class WeatherStationClass:
 		dew = -99
 
 # read battery voltage from A0
-	volt = f.getBatteryVoltage(batteryvoltage)
+	volt = getBatteryVoltage(batteryvoltage)
 
-	winddir = f.getWinddir()
+	winddir = getWinddir()
 
 	if (outside):
-		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(f.rf) + '&ws=' + str(f.ws) + '&wd=' + str(winddir)
- + '&d=' + str(dew)
+		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&ws=' + str(ws) + '&wd=' + str(winddir) + '&d=' + str(dew)
 	else:
-		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(f.rf) + '&rl=' + '0.0'
+		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&rl=' + '0.0'
 
 # zero interrupt counters
-	f.ws = 0
-	f.rf = 0
+	ws = 0
+	rf = 0
 
 	print ('Data: ', data)
 
@@ -144,4 +154,11 @@ class WeatherStationClass:
 			print('Response: ', response.text)
 	except:
 		continue
-"""
+
+# Go to sleep for the specified time (minus the time we needed for all the stuff we did in the loop)
+
+	loopend = utime.ticks_ms()
+
+	realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
+
+	sleep_ms(realdelay)
