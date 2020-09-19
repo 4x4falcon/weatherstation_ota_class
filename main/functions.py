@@ -2,6 +2,7 @@ rf = 0
 ws = 0
 ntpset = 0
 bright = 0
+esp32=True
 
 # toggle function
 def toggle(p):
@@ -17,29 +18,37 @@ def toggle(p):
 # resistor actual is actual resistance used. Usually from preferred values.
 
 def getBatteryVoltage(batteryvoltage):
+	global esp32
 	from machine import Pin, ADC
 
 # values of resistors in external voltage divider
 #	R1 = 96.0
 #	R2 = 34.1
 
-#ESP 8266
-	adc = ADC(0)
+	if (esp32):
 #ESP 32
-#	adc = ADC(Pin(36))
+		adc = ADC(Pin(36))
+	else:
+#ESP 8266
+		adc = ADC(0)
 
 	raw = adc.read()
-#ESP 8266
-	return raw/1024 * batteryvoltage
+
+	if (esp32):
 #ESP 32
-#	return raw/3520 * batteryvoltage
+		return raw/3520 * batteryvoltage
+	else:
+#ESP 8266
+		return raw/1024 * batteryvoltage
+
+
 
 # isr for rainfall counter
 # rainfall interrupt callback
 def rainfall_cb(d):
 	global rf
 	rf += 1
-#	print("Rainfall toggled", rf)
+	print("Rainfall toggled", rf)
 
 
 # isr for wind speed counter
@@ -47,22 +56,25 @@ def rainfall_cb(d):
 def windspeed_cb(d):
 	global ws
 	ws += 1
-#	print("Windspeed toggled", ws)
+	print("Windspeed toggled", ws)
 
 
 # read the current wind direction
 # return wind direction in degrees
 
 def getWinddir():
+	global esp32
 	from machine import Pin, ADC
 
 	winddir = 0
 
-#ESP 8266
-	adc = ADC(0)
+	if (esp32):
 #ESP 32
-#	adc = ADC(Pin(35))
-#	adc.atten(ADC.ATTN_11DB)
+		adc = ADC(Pin(35))
+		adc.atten(ADC.ATTN_11DB)
+	else:
+#ESP 8266
+		adc = ADC(0)
 
 	raw = adc.read()
 
@@ -131,11 +143,21 @@ def getWinddir():
 
 	return winddir
 
+# get rainfall counts and reset to zero if true
+def getRainfall(zero=True):
+	global rf
+	t = rf
+	if (zero):
+		rf = 0
+	return t
 
-#	return raw
-
-
-
+# get windspeed counts and reset to zero if true
+def getWindspeed(zero=True):
+	global ws
+	t = ws
+	if (zero):
+		ws = 0
+	return t
 
 
 # check if rtc needs updating from ntp after 30 minutes (1800 seconds)
@@ -145,3 +167,20 @@ def resetntp(t):
 		ntpset = t
 		return True
 	return False
+
+
+# connect wifi
+def do_connect(SSID, Pass):
+	import network
+	wlan = network.WLAN(network.STA_IF)
+	wlan.active(True)
+	if not wlan.isconnected():
+		print('connecting to network...')
+		wlan.connect(SSID, Pass)
+		while not wlan.isconnected():
+			pass
+	print('network config:', wlan.ifconfig())
+
+# reconnect wifi
+def reconnect():
+	return True

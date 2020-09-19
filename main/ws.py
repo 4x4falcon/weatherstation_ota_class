@@ -3,6 +3,11 @@
 outside = True
 calibrate = False
 
+#wifi info
+SSID = 'tihc4'
+SSID_P = '168dead861'
+
+
 from machine import Pin, I2C, RTC
 from time import sleep, sleep_ms
 
@@ -19,13 +24,20 @@ import machine
 from .functions import *
 #import .functions as f
 
-#esp8266
-sw1 = DebouncedSwitch(Pin(14, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
-sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+# select esp32 or esp8266
+from os import uname
+if (uname().sysname == 'esp8266'):
+	esp32 = False
+	print ("found esp8266")
 
-#esp32
-#sw1 = DebouncedSwitch(Pin(23, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
-#sw2 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+
+if (esp32):
+	sw1 = DebouncedSwitch(Pin(23, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
+	sw2 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+else:
+	sw1 = DebouncedSwitch(Pin(14, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
+	sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+
 
 
 # total time between loops in microseconds
@@ -44,14 +56,18 @@ led = Pin(2, Pin.OUT)
 led.off()
 
 # Freetronics hardware watchdog pin
-# ESP32
-#Hwwd = Pin(5, Pin.OUT)
-# ESP8266
-Hwwd = Pin(15, Pin.OUT)
+if (esp32):
+# ESP32 - Pin assignment
+	Hwwd = Pin(5, Pin.OUT)
+else:
+# ESP8266 - Pin assignment
+	Hwwd = Pin(15, Pin.OUT)
 
 from .classes.freetronicsWatchdog import Watchdog
 watchdog = Watchdog(Hwwd)
 
+# connect to wifi
+do_connect(SSID, SSID_P)
 
 rtc = RTC()
 # synchronize with ntp
@@ -72,10 +88,15 @@ for i in range(tries):
 
 ntpset = utime.time() + epochoffset
 
+if (esp32):
 # ESP32 - Pin assignment
-#i2c = I2C(scl=Pin(22), sda=Pin(21), freq=10000)
+	i2c = I2C(scl=Pin(22), sda=Pin(21), freq=10000)
+else:
 # ESP8266 - Pin assignment
-i2c = I2C(scl=Pin(5), sda=Pin(4), freq=10000)
+	i2c = I2C(scl=Pin(5), sda=Pin(4), freq=10000)
+
+
+# main loop
 
 while True:
 
@@ -102,8 +123,6 @@ while True:
 				if i < tries - 1: # i is zero indexed
 					sleep_ms(10000)
 					continue
-#			else:
-#				raise
 			break
 
 
@@ -127,17 +146,19 @@ while True:
 		pres = -99
 		dew = -99
 
-# read battery voltage from A0
+# read battery voltage
 	volt = getBatteryVoltage(batteryvoltage)
 
 	winddir = getWinddir()
+
+	ws = getWindspeed()
+	rf = getRainfall()
 
 	if (outside):
 		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&ws=' + str(ws) + '&wd=' + str(winddir) + '&d=' + str(dew)
 	else:
 		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&rl=' + '0.0'
 
-# zero interrupt counters
 	ws = 0
 	rf = 0
 
