@@ -8,7 +8,7 @@ SSID = 'tihc4'
 SSID_P = '168dead861'
 
 
-from machine import Pin, I2C, RTC
+from machine import Pin, I2C, RTC, reset
 from time import sleep, sleep_ms
 
 from .classes.bme280 import *
@@ -183,3 +183,6 @@ while True:
 	realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
 
 	sleep_ms(realdelay)
+
+	if (response.text == '99'):
+		machine.reset()
