@@ -4,8 +4,8 @@ outside = True
 calibrate = False
 
 #wifi info
-SSID = 'tihc4'
-SSID_P = '168dead861'
+SSID = 'SSID'
+SSID_P = 'Password'
 
 
 from machine import Pin, I2C, RTC, reset
