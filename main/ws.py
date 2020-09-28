@@ -14,14 +14,13 @@ import machine
 
 import json
 
-# load wifi config
+# load config
 
 config = None
 
 try:
         with open('ws/main/config/config.json') as cf:
                 config = json.load(cf)
-#        print ("outside: ", config['config']['outside'])
 
 except Exception:
 	print("not on ota")
@@ -30,7 +29,6 @@ else:
 	try:
         	with open('config/config.json') as cf:
                 	config = json.load(cf)
-#	        print ("outside: ", config['config']['outside'])
 	except Exception:
 		pass
 
