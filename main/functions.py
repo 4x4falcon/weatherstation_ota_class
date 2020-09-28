@@ -9,6 +9,16 @@ def toggle(p):
         p.value(not p.value())
 
 
+# select esp32 or esp8266
+def setEsp32():
+	global esp32
+	from os import uname
+	if (uname().sysname == 'esp8266'):
+	       esp32 = False
+	       print ("found esp8266")
+	return esp32
+
+
 
 # get battery voltage function
 
@@ -48,7 +58,7 @@ def getBatteryVoltage(batteryvoltage):
 def rainfall_cb(d):
 	global rf
 	rf += 1
-	print("Rainfall toggled", rf)
+#	print("Rainfall toggled", rf)
 
 
 # isr for wind speed counter
@@ -56,7 +66,7 @@ def rainfall_cb(d):
 def windspeed_cb(d):
 	global ws
 	ws += 1
-	print("Windspeed toggled", ws)
+#	print("Windspeed toggled", ws)
 
 
 # read the current wind direction
@@ -169,9 +179,23 @@ def resetntp(t):
 	return False
 
 
+# Load Wifi Configuration from JSON file.
+#def load_wifi_config():
+#        wifi_config = None
+#        config_filename = '/config/wifi_cfg.json'
+#        try:
+#                with open(config_filename) as json_config_file:
+#	                wifi_config = json.load(json_config_file)
+#        except Exception:
+#		print('No file')
+#                pass
+#        return wifi_config
+
+
 # connect wifi
 def do_connect(SSID, Pass):
 	import network
+	print("connecting to: ", SSID)
 	wlan = network.WLAN(network.STA_IF)
 	wlan.active(True)
 	if not wlan.isconnected():
@@ -184,3 +208,4 @@ def do_connect(SSID, Pass):
 # reconnect wifi
 def reconnect():
 	return True
+

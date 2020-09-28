@@ -1,13 +1,5 @@
 # -------------------------------------------------------------------------------
 
-outside = True
-calibrate = False
-
-#wifi info
-SSID = 'SSID'
-SSID_P = 'Password'
-
-
 from machine import Pin, I2C, RTC, reset
 from time import sleep, sleep_ms
 
@@ -20,15 +12,39 @@ import urequests
 
 import machine
 
+import json
+
+# load wifi config
+
+config = None
+
+try:
+        with open('ws/main/config/config.json') as cf:
+                config = json.load(cf)
+#        print ("outside: ", config['config']['outside'])
+
+except Exception:
+	print("not on ota")
+
+else:
+	try:
+        	with open('config/config.json') as cf:
+                	config = json.load(cf)
+#	        print ("outside: ", config['config']['outside'])
+	except Exception:
+		pass
+
+
+outside = config['config']['outside']
+calibrate = config['config']['calibrate']
+
+
 # import my functions
 from .functions import *
-#import .functions as f
 
 # select esp32 or esp8266
-from os import uname
-if (uname().sysname == 'esp8266'):
-	esp32 = False
-	print ("found esp8266")
+
+esp32 = setEsp32()
 
 
 if (esp32):
@@ -39,17 +55,18 @@ else:
 	sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
 
 
-
 # total time between loops in microseconds
-sleepdelay = 60000
-if (calibrate):
+sleepdelay = int(config['config']['sleepdelay'])
+if (calibrate == '1'):
 	sleepdelay = 5000
+
+print ("Sleepdelay: ", sleepdelay)
 
 # offset for epoch time from 1-1-1970 to 1-1-2000
 epochoffset = 946684800
 
 # battery voltage
-batteryvoltage = 3.7
+batteryvoltage = float(config['config']['batteryvoltage'])
 
 # inbuilt led
 led = Pin(2, Pin.OUT)
@@ -66,8 +83,22 @@ else:
 from .classes.freetronicsWatchdog import Watchdog
 watchdog = Watchdog(Hwwd)
 
+
+# load wifi config
+
+wifi_cfg = None
+
+try:
+        with open('config/wifi_cfg.json') as cf:
+                wifi_cfg = json.load(cf)
+        print ("SSID: ", wifi_cfg['wifi']['ssid'])
+        print ("PW: ", wifi_cfg['wifi']['password'])
+
+except Exception:
+                pass
+
 # connect to wifi
-do_connect(SSID, SSID_P)
+do_connect(wifi_cfg['wifi']['ssid'], wifi_cfg['wifi']['password'])
 
 rtc = RTC()
 # synchronize with ntp
@@ -137,8 +168,6 @@ while True:
 
 		dew = bme280.dew_point
 
-#		print ('Dew Point: ', dew)
-
 	except:
 		print('No bme280 present')
 		temp = -99
@@ -165,7 +194,7 @@ while True:
 	print ('Data: ', data)
 
 	try:
-		if (outside):
+		if (outside == '1'):
 			headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
 			response = urequests.post("http://10.0.0.34/status/weather/espdata_outside.php", data=data, headers=headers)
 			print('Response: ', response.text)
@@ -182,7 +211,12 @@ while True:
 
 	realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
 
+#	print("Realdelay: ", realdelay)
+
 	sleep_ms(realdelay)
 
 	if (response.text == '99'):
+		file = open("doUpdate","w")
+		file.write(str(response.text))
+		file.close()
 		machine.reset()
