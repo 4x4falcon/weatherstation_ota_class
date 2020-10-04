@@ -1,10 +1,10 @@
 help = """
-showWSConfig()				- show current configuration
-showSleepDelay()			- show the current time interval for readings in milliseconds
-setSleepDelay(<milliseconds>)		- set the time interval for readings in milliseconds (default 60000 - 1 min)
-showBatteryVoltage()			- show the current battery rated voltage
-setBatteryVoltage(<battervoltage>)	- set the battery rated voltage (default 3.7V)
- """
+c10()		=	showWSConfig()				- show current configuration
+c11()		=	showSleepDelay()			- show the current time interval for readings in milliseconds
+c12(<ms>)	=	setSleepDelay(<milliseconds>)		- set the time interval for readings in milliseconds (default 60000 - 1 min)
+c13()		=	showBatteryVoltage()			- show the current battery rated voltage
+c14(<volt>)	=	setBatteryVoltage(<battervoltage>)	- set the battery rated voltage (default 3.7V)
+"""
 
 print (help)
 
@@ -20,11 +20,16 @@ def showWSConfig():
 	print ("Battery voltage: ", config['config']['batteryvoltage'])
 	print ("Sleep delay: ", config['config']['sleepdelay'])
 
+def c10():
+	showWSConfig()
 
 def showSleepDelay():
 	with open(config_file) as cf:
 		config = json.load(cf)
 	print ("Sleep delay: ", config['config']['sleepdelay'])
+
+def c11():
+	showSleepDelay()
 
 def setSleepDelay(ms=60000):
 
@@ -44,12 +49,17 @@ def setSleepDelay(ms=60000):
 	else:
 		print ("Nothing to change")
 
+def c12(ms=60000):
+	setSleepDelay(ms)
 
 
 def showBatteryVoltage():
 	with open(config_file) as cf:
 		config = json.load(cf)
 	print ("Battery voltage: ", config['config']['batteryvoltage'])
+
+def c13():
+	showBatteryVoltage()
 
 def setBatteryVoltage(bv=3.7):
 
@@ -68,4 +78,7 @@ def setBatteryVoltage(bv=3.7):
 			print ("Error occured")
 	else:
 		print ("Nothing to change")
+
+def c14(bv=3.7):
+	setBatteryVoltage(bv)
 
