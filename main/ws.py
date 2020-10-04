@@ -127,94 +127,102 @@ else:
 
 # main loop
 
-while True:
+
+
+try:
+	while True:
 
 # start of loop time
-	loopstart = utime.ticks_ms()
+		loopstart = utime.ticks_ms()
 
-	toggle(led)
+		toggle(led)
 
-	watchdog.feed()
+		watchdog.feed()
 
-	timestamp = utime.time() + epochoffset
+		timestamp = utime.time() + epochoffset
 
 # update ntp time every 30 minutes 1800 seconds
 
-	if (resetntp(timestamp)):
+		if (resetntp(timestamp)):
 
-		for i in range(tries):
-			try:
-				ntptime.settime() # set the rtc datetime from the remote server
-				rtc.datetime()    # get the date and time in UTC
-				timestamp = utime.time() + epochoffset
-				print('Updating time via ntp')
-			except:
-				if i < tries - 1: # i is zero indexed
-					sleep_ms(10000)
-					continue
-			break
+			for i in range(tries):
+				try:
+					ntptime.settime() # set the rtc datetime from the remote server
+					rtc.datetime()    # get the date and time in UTC
+					timestamp = utime.time() + epochoffset
+					print('Updating time via ntp')
+				except:
+					if i < tries - 1: # i is zero indexed
+						sleep_ms(10000)
+						continue
+				break
 
 
-	try:
-		bme280 = BME280(i2c=i2c)
+		try:
+			bme280 = BME280(i2c=i2c)
 
-		t, p, h = bme280.values
+			t, p, h = bme280.values
 
-		temp = str(t).replace("C", "")
-		hum = str(h).replace("%", "")
-		pres = str(p).replace("hPa", "")
+			temp = str(t).replace("C", "")
+			hum = str(h).replace("%", "")
+			pres = str(p).replace("hPa", "")
 
-		dew = bme280.dew_point
+			dew = bme280.dew_point
 
-	except:
-		print('No bme280 present')
-		temp = -99
-		hum = -99
-		pres = -99
-		dew = -99
+		except:
+			print('No bme280 present')
+			temp = -99
+			hum = -99
+			pres = -99
+			dew = -99
 
 # read battery voltage
-	volt = getBatteryVoltage(batteryvoltage)
+		volt = getBatteryVoltage(batteryvoltage)
 
-	winddir = getWinddir()
+		winddir = getWinddir()
 
-	ws = getWindspeed()
-	rf = getRainfall()
+		ws = getWindspeed()
+		rf = getRainfall()
 
-	if (outside):
-		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&ws=' + str(ws) + '&wd=' + str(winddir) + '&d=' + str(dew)
-	else:
-		data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&rl=' + '0.0'
-
-	ws = 0
-	rf = 0
-
-	print ('Data: ', data)
-
-	try:
-		if (outside == '1'):
-			headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
-			response = urequests.post("http://10.0.0.34/status/weather/espdata_outside.php", data=data, headers=headers)
-			print('Response: ', response.text)
+		if (outside):
+			data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&ws=' + str(ws) + '&wd=' + str(winddir) + '&d=' + str(dew)
 		else:
-			headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
-			response = urequests.post("http://10.0.0.34/status/weather/espdata.php", data=data, headers=headers)
-			print('Response: ', response.text)
-	except:
-		continue
+			data = 'ti=' + str(timestamp) + '&t=' + str(temp) + '&p=' + str(pres) + '&h=' + str(hum) + '&v=' + str(volt) + '&rf=' + str(rf) + '&rl=' + '0.0'
+
+		ws = 0
+		rf = 0
+
+		print ('Data: ', data)
+
+		try:
+			if (outside == '1'):
+				headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
+				response = urequests.post("http://10.0.0.34/status/weather/espdata_outside.php", data=data, headers=headers)
+				print('Response: ', response.text)
+			else:
+				headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
+				response = urequests.post("http://10.0.0.34/status/weather/espdata.php", data=data, headers=headers)
+				print('Response: ', response.text)
+		except:
+			continue
 
 # Go to sleep for the specified time (minus the time we needed for all the stuff we did in the loop)
 
-	loopend = utime.ticks_ms()
+		loopend = utime.ticks_ms()
 
-	realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
+		realdelay = sleepdelay + utime.ticks_diff(loopstart, loopend)
 
 #	print("Realdelay: ", realdelay)
 
-	sleep_ms(realdelay)
+		sleep_ms(realdelay)
 
-	if (response.text == '99'):
-		file = open("doUpdate","w")
-		file.write(str(response.text))
-		file.close()
-		machine.reset()
+		if (response.text == '99'):
+			file = open("doUpdate","w")
+			file.write(str(response.text))
+			file.close()
+			machine.reset()
+
+
+except KeyboardInterrupt:
+	print('Caught Control-C')
+
