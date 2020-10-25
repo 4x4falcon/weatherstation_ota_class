@@ -4,6 +4,10 @@ ntpset = 0
 bright = 0
 esp32=True
 
+import network
+wlan = network.WLAN(network.STA_IF)
+
+
 # toggle function
 def toggle(p):
         p.value(not p.value())
@@ -193,16 +197,18 @@ def resetntp(t):
 
 
 # connect wifi
-def do_connect(SSID, Pass):
-	import network
+def do_connect(SSID, Pass, Host):
+#	import network
+	global wlan
 	print("connecting to: ", SSID)
-	wlan = network.WLAN(network.STA_IF)
+#	wlan = network.WLAN(network.STA_IF)
 	wlan.active(True)
 	if not wlan.isconnected():
 		print('connecting to network...')
 		wlan.connect(SSID, Pass)
 		while not wlan.isconnected():
 			pass
+	wlan.config(dhcp_hostname=Host)
 	print('network config:', wlan.ifconfig())
 
 # reconnect wifi

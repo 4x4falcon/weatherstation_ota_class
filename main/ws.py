@@ -91,12 +91,13 @@ try:
                 wifi_cfg = json.load(cf)
         print ("SSID: ", wifi_cfg['wifi']['ssid'])
         print ("PW: ", wifi_cfg['wifi']['password'])
+	print ("Hostname: ", wifi_cfg['wifi']['hostname'])
 
 except Exception:
                 pass
 
 # connect to wifi
-do_connect(wifi_cfg['wifi']['ssid'], wifi_cfg['wifi']['password'])
+do_connect(wifi_cfg['wifi']['ssid'], wifi_cfg['wifi']['password'], wifi_cfg['wifi']['hostname'])
 
 rtc = RTC()
 # synchronize with ntp
@@ -107,6 +108,7 @@ import ntptime
 tries = 10
 for i in range(tries):
 	try:
+		ntptime.host = '10.0.0.34'	#	'pool.ntp.org' # set the rtc datetime from the remote server
 		ntptime.settime() # set the rtc datetime from the remote server
 		rtc.datetime()    # get the date and time in UTC
 	except:
@@ -141,12 +143,17 @@ try:
 
 		timestamp = utime.time() + epochoffset
 
-# update ntp time every 30 minutes 1800 seconds
+		# reconnect to wifi if disconnected
+		if not wlan.isconnected():
+			do_connect(wifi_cfg['wifi']['ssid'], wifi_cfg['wifi']['password'], wifi_cfg['wifi']['hostname'])
 
+
+# update ntp time every 30 minutes 1800 seconds
 		if (resetntp(timestamp)):
 
 			for i in range(tries):
 				try:
+					ntptime.host = '10.0.0.34'	#	'pool.ntp.org' # set the rtc datetime from the remote server
 					ntptime.settime() # set the rtc datetime from the remote server
 					rtc.datetime()    # get the date and time in UTC
 					timestamp = utime.time() + epochoffset
