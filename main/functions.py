@@ -177,10 +177,22 @@ def getWindspeed(zero=True):
 # check if rtc needs updating from ntp after 30 minutes (1800 seconds)
 def resetntp(t):
 	global ntpset
+#	print("t: ", t)
+#	print("ntpset: ", ntpset)
 	if (t > ntpset + 1800):
 		ntpset = t
 		return True
 	return False
+
+# set ntpset
+def setntpset(t):
+	global ntpset
+	ntpset = t
+
+# get current ntpset
+def getntpset():
+	global ntpset
+	return ntpset
 
 
 # Load Wifi Configuration from JSON file.

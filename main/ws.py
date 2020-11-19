@@ -3,14 +3,15 @@
 from machine import Pin, I2C, RTC, reset
 from time import sleep, sleep_ms
 
-from .classes.bme280 import *
+#from .classes.bme280 import *
+from .bme280 import *
 from .classes.debounce import DebouncedSwitch
 
 import utime
 
 import urequests
 
-import machine
+#import machine
 
 import json
 
@@ -108,16 +109,19 @@ import ntptime
 tries = 10
 for i in range(tries):
 	try:
-		ntptime.host = '10.0.0.34'	#	'pool.ntp.org' # set the rtc datetime from the remote server
-		ntptime.settime() # set the rtc datetime from the remote server
-		rtc.datetime()    # get the date and time in UTC
+		ntptime.host = config['config']['ntphost']
+#		ntptime.host = '10.0.0.33'
+		ntptime.settime() 	# set the rtc datetime from the remote server
+		rtc.datetime()    	# get the date and time in UTC
 	except:
 		if i < tries - 1: # i is zero indexed
+			print(".")
 			sleep_ms(10000)
 			continue
 	break
 
-ntpset = utime.time() + epochoffset
+setntpset(utime.time() + epochoffset)
+#print("ntpset: ", getntpset())
 
 if (esp32):
 # ESP32 - Pin assignment
@@ -128,8 +132,6 @@ else:
 
 
 # main loop
-
-
 
 try:
 	while True:
@@ -147,23 +149,21 @@ try:
 		if not wlan.isconnected():
 			do_connect(wifi_cfg['wifi']['ssid'], wifi_cfg['wifi']['password'], wifi_cfg['wifi']['hostname'])
 
-
 # update ntp time every 30 minutes 1800 seconds
 		if (resetntp(timestamp)):
-
 			for i in range(tries):
 				try:
-					ntptime.host = '10.0.0.34'	#	'pool.ntp.org' # set the rtc datetime from the remote server
-					ntptime.settime() # set the rtc datetime from the remote server
-					rtc.datetime()    # get the date and time in UTC
+					ntptime.host = config['config']['ntphost']
+					ntptime.settime() 			# set the rtc datetime from the remote server
+					rtc.datetime()    			# get the date and time in UTC
 					timestamp = utime.time() + epochoffset
 					print('Updating time via ntp')
 				except:
-					if i < tries - 1: # i is zero indexed
+					if i < tries - 1: 			# i is zero indexed
 						sleep_ms(10000)
+						print(".")
 						continue
 				break
-
 
 		try:
 			bme280 = BME280(i2c=i2c)
@@ -174,7 +174,8 @@ try:
 			hum = str(h).replace("%", "")
 			pres = str(p).replace("hPa", "")
 
-			dew = bme280.dew_point
+#			dew = bme280.dew_point
+			dew = 0.0
 
 		except:
 			print('No bme280 present')
@@ -182,6 +183,8 @@ try:
 			hum = -99
 			pres = -99
 			dew = -99
+
+
 
 # read battery voltage
 		volt = getBatteryVoltage(batteryvoltage)
@@ -201,14 +204,18 @@ try:
 
 		print ('Data: ', data)
 
+		serverurl = config['config']['serverurl']
+
 		try:
 			if (outside == '1'):
 				headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
-				response = urequests.post("http://10.0.0.34/status/weather/espdata_outside.php", data=data, headers=headers)
+#				response = urequests.post("http://10.0.0.33/status/weather/espdata_outside.php", data=data, headers=headers)
+				response = urequests.post(serverurl, data=data, headers=headers)
 				print('Response: ', response.text)
 			else:
 				headers = {'User-Agent': 'uP-esp32devkitpro', 'Content-Type': 'application/x-www-form-urlencoded'}
-				response = urequests.post("http://10.0.0.34/status/weather/espdata.php", data=data, headers=headers)
+#				response = urequests.post("http://10.0.0.33/status/weather/espdata.php", data=data, headers=headers)
+				response = urequests.post(serverurl, data=data, headers=headers)
 				print('Response: ', response.text)
 		except:
 			continue

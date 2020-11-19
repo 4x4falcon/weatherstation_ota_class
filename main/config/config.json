@@ -1,1 +1,1 @@
-{"config": {"outside": "1", "calibrate": "0", "sleepdelay": "60000", "batteryvoltage", "3.7" } }
+{"config": {"outside": "1", "calibrate": "0", "sleepdelay": "60000", "batteryvoltage": "3.7", "ntphost": "10.0.0.33", "serverurl": "http://10.0.0.33/status/ws_up/espdata.php" } }

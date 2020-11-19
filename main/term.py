@@ -4,6 +4,7 @@ c11()		=	showSleepDelay()			- show the current time interval for readings in mil
 c12(<ms>)	=	setSleepDelay(<milliseconds>)		- set the time interval for readings in milliseconds (default 60000 - 1 min)
 c13()		=	showBatteryVoltage()			- show the current battery rated voltage
 c14(<volt>)	=	setBatteryVoltage(<battervoltage>)	- set the battery rated voltage (default 3.7V)
+c15()		=	showVersion()				- show current installed version
 """
 
 print (help)
@@ -81,4 +82,13 @@ def setBatteryVoltage(bv=3.7):
 
 def c14(bv=3.7):
 	setBatteryVoltage(bv)
+
+
+def showVersion():
+	f=open('ws/main/.version')
+	print(f.read())
+	f.close()
+
+def c15():
+	showVersion()
 
