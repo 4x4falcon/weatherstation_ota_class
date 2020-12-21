@@ -50,12 +50,8 @@ esp32 = setEsp32()
 
 
 if (esp32):
-#	sw1 = DebouncedSwitch(Pin(5, Pin.IN, Pin.PULL_UP), interrupt_cb, "w", delay=30)
-#	sw2 = DebouncedSwitch(Pin(17, Pin.IN, Pin.PULL_UP), interrupt_cb, "r", delay=30)
-
-	sw1 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)
-
-#	sw1 = DebouncedSwitch(Pin(5, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)
+#	sw1 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)   # this is for old pcb layout
+	sw1 = DebouncedSwitch(Pin(5, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)
 	sw2 = DebouncedSwitch(Pin(17, Pin.IN, Pin.PULL_UP), rainfall_cb, "r", delay=30, tid=3)
 else:
 	sw1 = DebouncedSwitch(Pin(15, Pin.IN, Pin.PULL_UP), interrupt_cb, "w", delay=30)
