@@ -3,9 +3,14 @@
 from machine import Pin, I2C, RTC, reset
 from time import sleep, sleep_ms
 
-#from .classes.bme280 import *
-from .bme280 import *
+# uncomment when debugging callback problems
+import micropython
+micropython.alloc_emergency_exception_buf(100)
+
+from .classes.bme280 import *
 from .classes.debounce import DebouncedSwitch
+
+print("imported classes")
 
 import utime
 
@@ -33,10 +38,8 @@ else:
 	except Exception:
 		pass
 
-
 outside = config['config']['outside']
-calibrate = config['config']['calibrate']
-
+calibrate = int(config['config']['calibrate'])
 
 # import my functions
 from .functions import *
@@ -47,16 +50,23 @@ esp32 = setEsp32()
 
 
 if (esp32):
-	sw1 = DebouncedSwitch(Pin(23, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
-	sw2 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+#	sw1 = DebouncedSwitch(Pin(5, Pin.IN, Pin.PULL_UP), interrupt_cb, "w", delay=30)
+#	sw2 = DebouncedSwitch(Pin(17, Pin.IN, Pin.PULL_UP), interrupt_cb, "r", delay=30)
+
+	sw1 = DebouncedSwitch(Pin(18, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)
+
+#	sw1 = DebouncedSwitch(Pin(5, Pin.IN, Pin.PULL_UP), windspeed_cb, "w", delay=30, tid=4)
+	sw2 = DebouncedSwitch(Pin(17, Pin.IN, Pin.PULL_UP), rainfall_cb, "r", delay=30, tid=3)
 else:
-	sw1 = DebouncedSwitch(Pin(14, Pin.IN, Pin.PULL_UP), windspeed_cb, "d", delay=30)
-	sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), rainfall_cb, "d", delay=30)
+	sw1 = DebouncedSwitch(Pin(15, Pin.IN, Pin.PULL_UP), interrupt_cb, "w", delay=30)
+	sw2 = DebouncedSwitch(Pin(0, Pin.IN, Pin.PULL_UP), interrup_cb, "r", delay=30)
+
+#print("set interrupts")
 
 
 # total time between loops in microseconds
 sleepdelay = int(config['config']['sleepdelay'])
-if (calibrate == '1'):
+if (calibrate == 1):
 	sleepdelay = 5000
 
 print ("Sleepdelay: ", sleepdelay)
@@ -74,10 +84,10 @@ led.off()
 # Freetronics hardware watchdog pin
 if (esp32):
 # ESP32 - Pin assignment
-	Hwwd = Pin(5, Pin.OUT)
+	Hwwd = Pin(23, Pin.OUT)
 else:
 # ESP8266 - Pin assignment
-	Hwwd = Pin(15, Pin.OUT)
+	Hwwd = Pin(13, Pin.OUT)
 
 from .classes.freetronicsWatchdog import Watchdog
 watchdog = Watchdog(Hwwd)
@@ -104,13 +114,14 @@ rtc = RTC()
 # synchronize with ntp
 # need to be connected to wifi
 
+print("get ntp time")
+
 import ntptime
 
 tries = 10
 for i in range(tries):
 	try:
 		ntptime.host = config['config']['ntphost']
-#		ntptime.host = '10.0.0.33'
 		ntptime.settime() 	# set the rtc datetime from the remote server
 		rtc.datetime()    	# get the date and time in UTC
 	except:
@@ -173,6 +184,15 @@ try:
 			temp = str(t).replace("C", "")
 			hum = str(h).replace("%", "")
 			pres = str(p).replace("hPa", "")
+
+			print ("removed units")
+
+
+# calculate dew point
+
+#			from math import log
+#		        hum = (log(hum, 10) - 2) / 0.4343 + (17.62 * temp) / (243.12 + temp)
+#		        dew = 243.12 * hum / (17.62 - hum)
 
 #			dew = bme280.dew_point
 			dew = 0.0

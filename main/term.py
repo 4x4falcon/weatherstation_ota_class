@@ -5,6 +5,9 @@ c12(<ms>)	=	setSleepDelay(<milliseconds>)		- set the time interval for readings 
 c13()		=	showBatteryVoltage()			- show the current battery rated voltage
 c14(<volt>)	=	setBatteryVoltage(<battervoltage>)	- set the battery rated voltage (default 3.7V)
 c15()		=	showVersion()				- show current installed version
+
+c20()		=	calibrateOn()				- turn on calibrate mode
+c21()		=	calibrateOff()				- turn off calibrate mode
 """
 
 print (help)
@@ -92,3 +95,40 @@ def showVersion():
 def c15():
 	showVersion()
 
+
+
+def calibrateOn():
+
+	try:
+	        with open(config_file) as cf:
+	                config = json.load(cf)
+	        print ("Calibrate mode: ", config['config']['calibrate'])
+		config['config']['calibrate'] = 1
+		print ("New calibrate mode: ", config['config']['calibrate'])
+		with open(config_file, 'w') as cf:
+			json.dump(config, cf)
+	except OSError:
+                print ("No config file at ", config_file)
+	except Exception:
+		print ("Error occured")
+
+def c20():
+	calibrateOn()
+
+def calibrateOff():
+
+	try:
+	        with open(config_file) as cf:
+	                config = json.load(cf)
+	        print ("Calibrate mode: ", config['config']['calibrate'])
+		config['config']['calibrate'] = 0
+		print ("New calibrate mode: ", config['config']['calibrate'])
+		with open(config_file, 'w') as cf:
+			json.dump(config, cf)
+	except OSError:
+                print ("No config file at ", config_file)
+	except Exception:
+		print ("Error occured")
+
+def c21():
+	calibrateOff()

@@ -7,6 +7,6 @@ class Watchdog:
 
 	def feed(self):
 		self.pin.on()
-		sleep_ms(20)
+		sleep_ms(100)
 		self.pin.off()
-
+		print ("Watchdog fed")
